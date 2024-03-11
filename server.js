@@ -1,21 +1,5 @@
 const soap = require("soap");
-// // URL of the WSDL of the SOAP service
-// process.env.HTTPS_PROXY = "http://127.0.0.1:8081";
 const url = "https://benzine.telcoinabox.com:443/tiab/UtbPooledResource?wsdl";
-// const { HttpsProxyAgent } = require("https-proxy-agent");
-
-// const agentOptions = {
-//   rejectUnauthorized: false, // This disables SSL certificate validation
-//   host: "127.0.0.1",
-//   port: "8081",
-// };
-
-// const proxyAgent = new HttpsProxyAgent(agentOptions);
-// const options = {
-//   wsdl_options: {
-//     agent: proxyAgent,
-//   },
-// };
 
 // SOAP Body
 const args = {
