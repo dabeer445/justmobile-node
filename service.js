@@ -8,7 +8,7 @@ app.use(bodyParser.json()); // Middleware to parse JSON bodies
 
 app.post('/service', (req, res) => {
     const { url, args, methodName } = req.body;
-
+console.log("GOT REQUEST: ", url);
     // Validate input
     if (!url || !args || !methodName) {
         return res.status(400).send('Missing required fields: url, args, methodName');
