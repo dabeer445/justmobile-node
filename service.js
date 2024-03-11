@@ -2,7 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const soap = require('soap');
 const app = express();
-const port = 443; // You can use any port that suits your setup
+const port = 444; // You can use any port that suits your setup
 
 app.use(bodyParser.json()); // Middleware to parse JSON bodies
 
@@ -34,6 +34,11 @@ console.log("GOT REQUEST: ", url);
             res.status(400).send(`Method ${methodName} not found on SOAP client`);
         }
     });
+});
+
+// Health check route
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
 });
 
 app.listen(port, () => {
