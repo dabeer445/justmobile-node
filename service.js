@@ -26,7 +26,7 @@ console.log("GOT REQUEST: ", url);
             client[methodName](args, (err, result) => {
                 if (err) {
                     console.error("Error calling SOAP method:", err);
-                    return res.status(500).send("Error calling SOAP method");
+                    return res.status(500).send(`Error calling SOAP method ${err}`);
                 }
                 res.json(result);
             });
