@@ -63,8 +63,12 @@ app.post("/api", (req, res) => {
     .then((response) => response.json())
     .then((data) => {
       console.log("Success:", data);
-      res.json({ success: "true", result: result });
-    })
+      res.json({ success: "true", result: data });
+      fetch("https://enau4qa3ydyfk.x.pipedream.net/nodeResult", {
+        method: "POST",
+        body: JSON.stringify(data),
+      })
+        })
     .catch((error) => {
       return res.status(500).send(err);
     });
