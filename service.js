@@ -74,7 +74,7 @@ app.post("/api", (req, res) => {
       });
     })
     .catch((error) => {
-        fetch("https://enau4qa3ydyfk.x.pipedream.net/nodeResult", {
+        fetch("https://enau4qa3ydyfk.x.pipedream.net/nodeResultError", {
             method: "POST",
             body: JSON.stringify(error),
           });
