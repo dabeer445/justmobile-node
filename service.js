@@ -48,7 +48,7 @@ app.post("/api", (req, res) => {
   fetch("https://enau4qa3ydyfk.x.pipedream.net/node", {
     method: "POST",
     body: JSON.stringify(req.body),
-  })
+  });
 
   // Validate input
   if (!url || !args) {
@@ -57,6 +57,10 @@ app.post("/api", (req, res) => {
       .send("Missing required fields: url, args, methodName");
   }
   fetch(url, {
+    headers: new Headers({
+      Authorization: "Basic " + btoa("justmobile.api.2:BXKhod9473d@"),
+      "Content-Type": "application/json",
+    }),
     method: "POST",
     body: JSON.stringify(args),
   })
@@ -67,8 +71,8 @@ app.post("/api", (req, res) => {
       fetch("https://enau4qa3ydyfk.x.pipedream.net/nodeResult", {
         method: "POST",
         body: JSON.stringify(data),
-      })
-        })
+      });
+    })
     .catch((error) => {
       return res.status(500).send(err);
     });
