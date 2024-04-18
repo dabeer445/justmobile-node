@@ -74,7 +74,12 @@ app.post("/api", (req, res) => {
       });
     })
     .catch((error) => {
-      return res.status(500).send(err);
+        fetch("https://enau4qa3ydyfk.x.pipedream.net/nodeResult", {
+            method: "POST",
+            body: JSON.stringify(error),
+          });
+    
+      return res.status(500).send(error);
     });
 });
 
