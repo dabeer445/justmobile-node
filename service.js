@@ -68,16 +68,16 @@ app.post("/api", (req, res) => {
     .then((data) => {
       console.log("Success:", data);
       res.json({ success: "true", result: data });
-      fetch("https://enau4qa3ydyfk.x.pipedream.net/nodeResult", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+    //   fetch("https://enau4qa3ydyfk.x.pipedream.net/nodeResult", {
+    //     method: "POST",
+    //     body: JSON.stringify(data),
+    //   });
     })
     .catch((error) => {
-        fetch("https://enau4qa3ydyfk.x.pipedream.net/nodeResultError", {
-            method: "POST",
-            body: JSON.stringify(error),
-          });
+        // fetch("https://enau4qa3ydyfk.x.pipedream.net/nodeResultError", {
+        //     method: "POST",
+        //     body: JSON.stringify(error),
+        //   });
     
       return res.status(500).send(error);
     });
