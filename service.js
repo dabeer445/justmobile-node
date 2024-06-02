@@ -52,7 +52,7 @@ app.post("/service", (req, res) => {
   soap.createClient(url, (err, client) => {
     if (err) {
       console.error("Error creating SOAP client:", err);
-      return res.status(500).json({ error: "Error creating SOAP client", details: util.inspect(err, { depth: null }) });
+      return res.status(500).json({ error: "Error creating SOAP client", details: extractEssentialErrorDetails(err) });
     }
 
     // Dynamically call the method on the client
@@ -60,7 +60,7 @@ app.post("/service", (req, res) => {
       client[methodName](args, (err, result) => {
         if (err) {
           // console.error("Error calling SOAP method:", err);
-          return res.status(500).json({ error: "Error calling SOAP method", details: util.inspect(err, { depth: null })  });
+          return res.status(500).json({ error: "Error calling SOAP method", details: extractEssentialErrorDetails(err)  });
         }
         res.json(result);
       });
@@ -117,3 +117,12 @@ app.post("/api", (req, res) => {
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
+
+// Helper function to extract essential error details without circular references
+function extractEssentialErrorDetails(error) {
+  let essentialDetails = error.message;
+  if (error.root && error.root.Envelope && error.root.Envelope.Body && error.root.Envelope.Body.Fault) {
+    essentialDetails = `${error.root.Envelope.Body.Fault.faultcode}: ${error.root.Envelope.Body.Fault.faultstring}`;
+  }
+  return essentialDetails;
+}
