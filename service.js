@@ -3,6 +3,7 @@ const bodyParser = require("body-parser");
 const soap = require("soap");
 const app = express();
 const port = 2000; // You can use any port that suits your setup
+const util = require('util');
 
 app.use(bodyParser.json()); // Middleware to parse JSON bodies
 
@@ -51,7 +52,7 @@ app.post("/service", (req, res) => {
   soap.createClient(url, (err, client) => {
     if (err) {
       console.error("Error creating SOAP client:", err);
-      return res.status(500).json({ error: "Error creating SOAP client", details: err });
+      return res.status(500).json({ error: "Error creating SOAP client", details: util.inspect(err, { depth: null }) });
     }
 
     // Dynamically call the method on the client
@@ -59,7 +60,7 @@ app.post("/service", (req, res) => {
       client[methodName](args, (err, result) => {
         if (err) {
           // console.error("Error calling SOAP method:", err);
-          return res.status(500).json({ error: "Error calling SOAP method", details: extractErrorDetails(err) });
+          return res.status(500).json({ error: "Error calling SOAP method", details: util.inspect(err, { depth: null })  });
         }
         res.json(result);
       });
@@ -68,13 +69,6 @@ app.post("/service", (req, res) => {
     }
   });
 });
-function extractErrorDetails(error) {
-  const simpleError = {};
-  Object.getOwnPropertyNames(error).forEach((key) => {
-    simpleError[key] = error[key];
-  });
-  return simpleError;
-}
 // Health check route
 app.get("/health", (req, res) => {
   res.status(200).send("OK");
