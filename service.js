@@ -58,11 +58,8 @@ app.post("/service", (req, res) => {
     if (typeof client[methodName] === "function") {
       client[methodName](args, (err, result) => {
         if (err) {
-          const txt =  err.text()
-          console.log(err)
-          console.log("+++++++++++++++",txt)
           // console.error("Error calling SOAP method:", err);
-          return res.status(500).json({ error: `Error calling SOAP method`, details: JSON.stringify(err) });
+          return res.status(500).json({ error: "Error calling SOAP method", details: extractErrorDetails(err) });
         }
         res.json(result);
       });
@@ -71,7 +68,13 @@ app.post("/service", (req, res) => {
     }
   });
 });
-
+function extractErrorDetails(error) {
+  const simpleError = {};
+  Object.getOwnPropertyNames(error).forEach((key) => {
+    simpleError[key] = error[key];
+  });
+  return simpleError;
+}
 // Health check route
 app.get("/health", (req, res) => {
   res.status(200).send("OK");
