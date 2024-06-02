@@ -58,9 +58,11 @@ app.post("/service", (req, res) => {
     if (typeof client[methodName] === "function") {
       client[methodName](args, (err, result) => {
         if (err) {
+          const txt =  err.text()
           console.log(err)
+          console.log("+++++++++++++++",txt)
           // console.error("Error calling SOAP method:", err);
-          return res.status(500).json({ error: `Error calling SOAP method`, details: JSON.stringify(err) });
+          return res.status(500).json({ error: `Error calling SOAP method`, details: JSON.stringify(err.) });
         }
         res.json(result);
       });
