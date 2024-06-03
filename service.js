@@ -60,8 +60,8 @@ app.post("/service", (req, res) => {
       client[methodName](args, (err, result) => {
         if (err) {
           // console.error("Error calling SOAP method:", err);
-          return res.status(500).json({ error: "Error calling SOAP method ASAS"  });
-          // return res.status(500).json({ error: "Error calling SOAP method", details: util.inspect(err, { depth: null })  });
+          // return res.status(500).json({ error: "Error calling SOAP method ASAS"  });
+          return res.status(500).json({ error: "Error calling SOAP method", details: util.inspect(err, { depth: null }) });
         }
         res.json(result);
       });
