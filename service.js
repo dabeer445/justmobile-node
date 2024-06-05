@@ -52,7 +52,7 @@ app.post("/service", (req, res) => {
   soap.createClient(url, (err, client) => {
     if (err) {
       console.error("Error creating SOAP client:", err);
-      return res.status(500).json({ error: "Error creating SOAP client", details: util.inspect(err, { depth: null }) });
+      return res.status(500).json({ error: "Error creating SOAP client", details: util.inspect(err, { depth: null }).split('\n')[0] });
     }
 
     // Dynamically call the method on the client
@@ -61,7 +61,7 @@ app.post("/service", (req, res) => {
         if (err) {
           // console.error("Error calling SOAP method:", err);
           // return res.status(500).json({ error: "Error calling SOAP method ASAS"  });
-          return res.status(500).json({ error: "Error calling SOAP method", details: util.inspect(err, { depth: null }) });
+          return res.status(500).json({ error: "Error calling SOAP method", details: util.inspect(err, { depth: null }).split('\n')[0] });
         }
         res.json(result);
       });
