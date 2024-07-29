@@ -9,9 +9,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "axios": "^0.27.2",
-    "express": "^4.18.3",
+    "axios": ">=0.28.0",
+    "express": ">=4.19.2",
     "node-fetch": "^3.3.2",
+    "follow-redirects": ">=1.15.6",
     "soap": "^1.0.0"
   }
 }
