@@ -41,7 +41,7 @@ app.use(bodyParser.json()); // Middleware to parse JSON bodies
 
 app.post("/service", (req, res) => {
   const { url, args, methodName } = req.body;
-  console.log("GOT REQUEST: ", url);
+  console.dir(`GO{T REQUEST: ${req.body}}`, {depth:null});
 
   // Validate input
   if (!url || !args || !methodName) {
@@ -54,12 +54,13 @@ app.post("/service", (req, res) => {
       console.error("Error creating SOAP client:", err);
       return res.status(500).json({ error: "Error creating SOAP client", details: util.inspect(err, { depth: null }).split('\n')[0] });
     }
+    console.log("No Error creating client")
 
     // Dynamically call the method on the client
     if (typeof client[methodName] === "function") {
       client[methodName](args, (err, result) => {
         if (err) {
-          // console.error("Error calling SOAP method:", err);
+          console.error("Error calling SOAP method:", err);
           // return res.status(500).json({ error: "Error calling SOAP method ASAS"  });
           return res.status(500).json({ error: "Error calling SOAP method", details: util.inspect(err, { depth: null }).split('\n')[0] });
         }
