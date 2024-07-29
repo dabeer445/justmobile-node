@@ -41,7 +41,8 @@ app.use(bodyParser.json()); // Middleware to parse JSON bodies
 
 app.post("/service", (req, res) => {
   const { url, args, methodName } = req.body;
-  console.dir(`GO{T REQUEST: ${req.body}}`, {depth:null});
+  console.log(`GOT REQUEST:`);
+  console.dir(req.body, {depth:null});
 
   // Validate input
   if (!url || !args || !methodName) {
