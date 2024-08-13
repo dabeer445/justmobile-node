@@ -11,8 +11,9 @@
   "dependencies": {
     "axios": ">=0.28.0",
     "express": ">=4.19.2",
-    "node-fetch": "^3.3.2",
     "follow-redirects": ">=1.15.6",
-    "soap": "^1.0.0"
+    "node-fetch": "^3.3.2",
+    "soap": "^1.0.0",
+    "winston": "^3.14.1"
   }
 }
