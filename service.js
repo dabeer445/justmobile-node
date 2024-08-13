@@ -127,7 +127,7 @@ app.post("/api", (req, res) => {
       const data = response.json();
       logger.info("Received response from external API", {
         status: response.status,
-        data,
+        data: response.text(),
       });
       return data;
     })
