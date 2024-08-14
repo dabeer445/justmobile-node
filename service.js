@@ -100,6 +100,50 @@ app.post("/service", (req, res) => {
   });
 });
 
+// app.post("/api", (req, res) => {
+//   logger.info("Received API request", { body: req.body });
+
+//   const { url, args } = req.body;
+
+//   // Validate input
+//   if (!url || !args) {
+//     logger.error("Missing required fields", { url, args });
+//     return res
+//       .status(400)
+//       .send("Missing required fields: url, args, methodName");
+//   }
+
+//   logger.info("Sending request to external API", { url, args });
+
+//   fetch(url, {
+//     headers: new Headers({
+//       Authorization: "Basic " + btoa("justmobile.api.2:BXKhod9473d@"),
+//       "Content-Type": "application/json",
+//     }),
+//     method: "POST",
+//     body: JSON.stringify(args),
+//   })
+//     .then((response) => {
+//       const data = response.json();
+//       logger.info("Received response from external API", {
+//         status: response.status,
+//         data: response.text(),
+//       });
+//       return data;
+//     })
+//     .then((data) => {
+//       logger.info("Successfully processed external API response", { data });
+//       res.json({ success: "true", result: data });
+//     })
+//     .catch((error) => {
+//       logger.error("Error occurred while processing request", {
+//         error: error.message,
+//         stack: error.stack,
+//       });
+//       return res.status(500).send(error.message);
+//     });
+// });
+
 app.post("/api", (req, res) => {
   logger.info("Received API request", { body: req.body });
 
@@ -110,7 +154,7 @@ app.post("/api", (req, res) => {
     logger.error("Missing required fields", { url, args });
     return res
       .status(400)
-      .send("Missing required fields: url, args, methodName");
+      .send("Missing required fields: url, args");
   }
 
   logger.info("Sending request to external API", { url, args });
@@ -123,17 +167,37 @@ app.post("/api", (req, res) => {
     method: "POST",
     body: JSON.stringify(args),
   })
-    .then((response) => {
-      const data = response.json();
+    .then(async (response) => {
+      const responseText = await response.text();
       logger.info("Received response from external API", {
         status: response.status,
-        data: response.text(),
+        data: responseText,
       });
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (error) {
+        logger.error("Failed to parse response as JSON", {
+          error: error.message,
+          responseText,
+        });
+        throw new Error("Invalid JSON response");
+      }
+
+      if (!response.ok) {
+        logger.error("API request failed", {
+          status: response.status,
+          data,
+        });
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+
       return data;
     })
     .then((data) => {
       logger.info("Successfully processed external API response", { data });
-      res.json({ success: "true", result: data });
+      res.json({ success: true, result: data });
     })
     .catch((error) => {
       logger.error("Error occurred while processing request", {
