@@ -204,7 +204,7 @@ app.post("/api", (req, res) => {
         error: error.message,
         stack: error.stack,
       });
-      return res.status(500).send(error.message);
+      return res.status(500).send({ success: true, result: error });
     });
 });
 
