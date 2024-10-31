@@ -1,10 +1,13 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const soap = require("soap");
-const app = express();
-const port = 2000; // You can use any port that suits your setup
+const { createReadStream } = require('fs');
+const readline = require('readline');
 const util = require("util");
 const winston = require("winston");
+
+const app = express();
+const port = 2000; // You can use any port that suits your setup
 
 // Configure Winston logger
 const logger = winston.createLogger({
@@ -147,21 +150,21 @@ app.post("/service", (req, res) => {
 app.post("/api", (req, res) => {
   logger.info("Received API request", { body: req.body });
 
-  const { url, args } = req.body;
+  const { url, args, login } = req.body;
 
   // Validate input
-  if (!url || !args) {
-    logger.error("Missing required fields", { url, args });
+  if (!url || !args || !login) {
+    logger.error("Missing required fields", { url, args,login });
     return res
       .status(400)
-      .send("Missing required fields: url, args");
+      .send("Missing required fields: url, args, login");
   }
 
   logger.info("Sending request to external API", { url, args });
 
   fetch(url, {
     headers: new Headers({
-      Authorization: "Basic " + btoa("justmobile.api.2:Nnkd##3ds3fdadg"),
+      Authorization: "Basic " + btoa(`${login.userName}:${login.password}`),
       "Content-Type": "application/json",
     }),
     method: "POST",
@@ -206,6 +209,73 @@ app.post("/api", (req, res) => {
       });
       return res.status(500).send({ success: true, result: error });
     });
+});
+
+app.get("/logs", async  (req, res)=>{
+  try {
+    const page = parseInt(req.query.page || '1');
+    const limit = parseInt(req.query.limit || '10');
+    const { level, search, startDate, endDate } = req.query;
+
+    // Adjust this path to your log file location
+    const logFilePath = './api_logs.log';
+    
+    const fileStream = createReadStream(logFilePath);
+    const rl = readline.createInterface({
+      input: fileStream,
+      crlfDelay: Infinity
+    });
+
+    const logs = [];
+    let totalLogs = 0;
+    let skippedLogs = 0;
+    const skip = (page - 1) * limit;
+
+    for await (const line of rl) {
+      try {
+        const log = JSON.parse(line);
+        
+        // Apply filters
+        if (level && log.level !== level) continue;
+        if (search && !JSON.stringify(log).toLowerCase().includes(search.toLowerCase())) continue;
+        if (startDate && new Date(log.timestamp) < new Date(startDate)) continue;
+        if (endDate && new Date(log.timestamp) > new Date(endDate)) continue;
+
+        totalLogs++;
+
+        if (skippedLogs < skip) {
+          skippedLogs++;
+          continue;
+        }
+
+        if (logs.length < limit) {
+          logs.push(log);
+        }
+
+      } catch (error) {
+        console.error('Error parsing log line:', error);
+        continue;
+      }
+    }
+
+    res.json({
+      data: logs,
+      total: totalLogs,
+      page: page,
+      limit: limit,
+      totalPages: Math.ceil(totalLogs / limit)
+    });
+
+  } catch (error) {
+    console.error('Error processing logs:', error);
+    res.status(500).json({
+      data: [],
+      total: 0,
+      page: 1,
+      limit: 10,
+      totalPages: 0
+    });
+  }
 });
 
 app.listen(port, () => {
