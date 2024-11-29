@@ -150,10 +150,10 @@ app.post("/service", (req, res) => {
 app.post("/api", (req, res) => {
   logger.info("Received API request", { body: req.body });
 
-  const { url, args, login } = req.body;
+  const { url, args } = req.body;
 
   // Validate input
-  if (!url || !args || !login) {
+  if (!url || !args || !args.login) {
     logger.error("Missing required fields", { url, args });
     return res.status(400).json({ success: false, result: "Missing required fields: url, args, args.login" });
   }
@@ -261,7 +261,7 @@ app.get("/logs", async (req, res) => {
     }
 
     res.json({
-      data: logs,
+      data: logs.reverse(),
       total: totalLogs,
       page: page,
       limit: limit,
