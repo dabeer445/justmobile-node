@@ -5,6 +5,7 @@ const { createReadStream } = require("fs");
 const readline = require("readline");
 const util = require("util");
 const winston = require("winston");
+require("winston-daily-rotate-file");
 
 const app = express();
 const port = 2000; // You can use any port that suits your setup
@@ -18,7 +19,16 @@ const logger = winston.createLogger({
   ),
   transports: [
     new winston.transports.Console(),
-    new winston.transports.File({ filename: "api_logs.log" }),
+    // new winston.transports.File({ filename: "api_logs.log" }),
+    new winston.transports.DailyRotateFile({
+      filename: "logs/api-%DATE%.log",
+      datePattern: "YYYY-MM",
+      zippedArchive: true,
+      maxSize: "20m",
+      maxFiles: "12",
+      createSymlink: true,
+      symlinkName: "api_logs.log"
+    }),
   ],
 });
 
