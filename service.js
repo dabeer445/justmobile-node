@@ -226,7 +226,7 @@ app.get("/logs", async (req, res) => {
     const { level, search, startDate, endDate } = req.query;
 
     // Adjust this path to your log file location
-    const logFilePath = "./api_logs.log";
+    const logFilePath = "./logs/api_logs.log";
 
     const fileStream = createReadStream(logFilePath);
     const rl = readline.createInterface({
