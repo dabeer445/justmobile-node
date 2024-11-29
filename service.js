@@ -166,7 +166,7 @@ app.post("/api", (req, res) => {
       "Content-Type": "application/json",
     }),
     method: "POST",
-    body: JSON.stringify(args),
+    body: JSON.stringify({...args, login:undefined }),
   })
     .then(async (response) => {
       const responseText = await response.text();
@@ -205,7 +205,7 @@ app.post("/api", (req, res) => {
         error: error.message,
         stack: error.stack,
       });
-      return res.status(500).json({ success: true, result: error });
+      return res.status(500).json({ success: false, result: error });
     });
 });
 
