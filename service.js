@@ -1,8 +1,8 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const soap = require("soap");
-const { createReadStream } = require('fs');
-const readline = require('readline');
+const { createReadStream } = require("fs");
+const readline = require("readline");
 const util = require("util");
 const winston = require("winston");
 
@@ -154,17 +154,15 @@ app.post("/api", (req, res) => {
 
   // Validate input
   if (!url || !args || !login) {
-    logger.error("Missing required fields", { url, args,login });
-    return res
-      .status(400)
-      .send("Missing required fields: url, args, login");
+    logger.error("Missing required fields", { url, args });
+    return res.status(400).json({ success: false, result: "Missing required fields: url, args, args.login" });
   }
 
   logger.info("Sending request to external API", { url, args });
 
   fetch(url, {
     headers: new Headers({
-      Authorization: "Basic " + btoa(`${login.userName}:${login.password}`),
+      Authorization: "Basic " + btoa(`${args.login.userName}:${args.login.password}`),
       "Content-Type": "application/json",
     }),
     method: "POST",
@@ -207,23 +205,23 @@ app.post("/api", (req, res) => {
         error: error.message,
         stack: error.stack,
       });
-      return res.status(500).send({ success: true, result: error });
+      return res.status(500).json({ success: true, result: error });
     });
 });
 
-app.get("/logs", async  (req, res)=>{
+app.get("/logs", async (req, res) => {
   try {
-    const page = parseInt(req.query.page || '1');
-    const limit = parseInt(req.query.limit || '10');
+    const page = parseInt(req.query.page || "1");
+    const limit = parseInt(req.query.limit || "10");
     const { level, search, startDate, endDate } = req.query;
 
     // Adjust this path to your log file location
-    const logFilePath = './api_logs.log';
-    
+    const logFilePath = "./api_logs.log";
+
     const fileStream = createReadStream(logFilePath);
     const rl = readline.createInterface({
       input: fileStream,
-      crlfDelay: Infinity
+      crlfDelay: Infinity,
     });
 
     const logs = [];
@@ -234,11 +232,16 @@ app.get("/logs", async  (req, res)=>{
     for await (const line of rl) {
       try {
         const log = JSON.parse(line);
-        
+
         // Apply filters
         if (level && log.level !== level) continue;
-        if (search && !JSON.stringify(log).toLowerCase().includes(search.toLowerCase())) continue;
-        if (startDate && new Date(log.timestamp) < new Date(startDate)) continue;
+        if (
+          search &&
+          !JSON.stringify(log).toLowerCase().includes(search.toLowerCase())
+        )
+          continue;
+        if (startDate && new Date(log.timestamp) < new Date(startDate))
+          continue;
         if (endDate && new Date(log.timestamp) > new Date(endDate)) continue;
 
         totalLogs++;
@@ -251,9 +254,8 @@ app.get("/logs", async  (req, res)=>{
         if (logs.length < limit) {
           logs.push(log);
         }
-
       } catch (error) {
-        console.error('Error parsing log line:', error);
+        console.error("Error parsing log line:", error);
         continue;
       }
     }
@@ -263,17 +265,16 @@ app.get("/logs", async  (req, res)=>{
       total: totalLogs,
       page: page,
       limit: limit,
-      totalPages: Math.ceil(totalLogs / limit)
+      totalPages: Math.ceil(totalLogs / limit),
     });
-
   } catch (error) {
-    console.error('Error processing logs:', error);
+    console.error("Error processing logs:", error);
     res.status(500).json({
       data: [],
       total: 0,
       page: 1,
       limit: 10,
-      totalPages: 0
+      totalPages: 0,
     });
   }
 });
