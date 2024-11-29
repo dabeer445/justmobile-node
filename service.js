@@ -201,7 +201,7 @@ app.post("/api", (req, res) => {
           status: response.status,
           data,
         });
-        throw new Error(`API request failed with status ${response.status}`);
+        throw new Error(`API request failed with status ${response.status}`,data);
       }
 
       return data;
