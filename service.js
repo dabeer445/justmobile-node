@@ -1,10 +1,12 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const soap = require("soap");
-const { createReadStream } = require("fs");
+const { createReadStream, readFileSync } = require("fs");
 const readline = require("readline");
 const util = require("util");
 const winston = require("winston");
+const path = require("path");
+const WebSocket = require("ws");
 require("winston-daily-rotate-file");
 
 const app = express();
@@ -27,10 +29,65 @@ const logger = winston.createLogger({
       maxSize: "20m",
       maxFiles: "12",
       createSymlink: true,
-      symlinkName: "api_logs.log"
+      symlinkName: "api_logs.log",
     }),
   ],
 });
+
+// Function to read and process logs
+async function processLogs(options = {}) {
+  const { page = 1, limit = 10, level, search, startDate, endDate } = options;
+
+  const logFilePath = "./logs/api_logs.log";
+  const fileStream = createReadStream(logFilePath);
+  const rl = readline.createInterface({
+    input: fileStream,
+    crlfDelay: Infinity,
+  });
+
+  const logs = [];
+  let totalLogs = 0;
+  let skippedLogs = 0;
+  const skip = (page - 1) * limit;
+
+  for await (const line of rl) {
+    try {
+      const log = JSON.parse(line);
+
+      // Apply filters
+      if (level && log.level !== level) continue;
+      if (
+        search &&
+        !JSON.stringify(log).toLowerCase().includes(search.toLowerCase())
+      )
+        continue;
+      if (startDate && new Date(log.timestamp) < new Date(startDate)) continue;
+      if (endDate && new Date(log.timestamp) > new Date(endDate)) continue;
+
+      totalLogs++;
+
+      if (skippedLogs < skip) {
+        skippedLogs++;
+        continue;
+      }
+
+      if (logs.length < limit) {
+        logs.push(log);
+      }
+    } catch (error) {
+      console.error("Error parsing log line:", error);
+      continue;
+    }
+  }
+
+  return {
+    data: logs.reverse(),
+    total: totalLogs,
+    page: page,
+    limit: limit,
+    totalPages: Math.ceil(totalLogs / limit),
+  };
+}
 
 app.use(bodyParser.json()); // Middleware to parse JSON bodies
 
@@ -113,50 +170,6 @@ app.post("/service", (req, res) => {
   });
 });
 
-// app.post("/api", (req, res) => {
-//   logger.info("Received API request", { body: req.body });
-
-//   const { url, args } = req.body;
-
-//   // Validate input
-//   if (!url || !args) {
-//     logger.error("Missing required fields", { url, args });
-//     return res
-//       .status(400)
-//       .send("Missing required fields: url, args, methodName");
-//   }
-
-//   logger.info("Sending request to external API", { url, args });
-
-//   fetch(url, {
-//     headers: new Headers({
-//       Authorization: "Basic " + btoa("justmobile.api.2:BXKhod9473d@"),
-//       "Content-Type": "application/json",
-//     }),
-//     method: "POST",
-//     body: JSON.stringify(args),
-//   })
-//     .then((response) => {
-//       const data = response.json();
-//       logger.info("Received response from external API", {
-//         status: response.status,
-//         data: response.text(),
-//       });
-//       return data;
-//     })
-//     .then((data) => {
-//       logger.info("Successfully processed external API response", { data });
-//       res.json({ success: "true", result: data });
-//     })
-//     .catch((error) => {
-//       logger.error("Error occurred while processing request", {
-//         error: error.message,
-//         stack: error.stack,
-//       });
-//       return res.status(500).send(error.message);
-//     });
-// });
-
 app.post("/api", (req, res) => {
   logger.info("Received API request", { body: req.body });
 
@@ -165,18 +178,22 @@ app.post("/api", (req, res) => {
   // Validate input
   if (!url || !args || !args.login) {
     logger.error("Missing required fields", { url, args });
-    return res.status(400).json({ success: false, result: "Missing required fields: url, args, args.login" });
+    return res.status(400).json({
+      success: false,
+      result: "Missing required fields: url, args, args.login",
+    });
   }
 
   logger.info("Sending request to external API", { url, args });
 
   fetch(url, {
     headers: new Headers({
-      Authorization: "Basic " + btoa(`${args.login.userName}:${args.login.password}`),
+      Authorization:
+        "Basic " + btoa(`${args.login.userName}:${args.login.password}`),
       "Content-Type": "application/json",
     }),
     method: "POST",
-    body: JSON.stringify({...args, login:undefined }),
+    body: JSON.stringify({ ...args, login: undefined }),
   })
     .then(async (response) => {
       const responseText = await response.text();
@@ -201,7 +218,10 @@ app.post("/api", (req, res) => {
           status: response.status,
           data,
         });
-        throw new Error(`API request failed with status ${response.status}`,data);
+        throw new Error(
+          `API request failed with status ${response.status}`,
+          data
+        );
       }
 
       return data;
@@ -289,7 +309,74 @@ app.get("/logs", async (req, res) => {
   }
 });
 
-app.listen(port, () => {
+app.get("/logs-ui", async (req, res) => {
+  try {
+    // Get initial logs
+    const initialLogs = await processLogs();
+
+    // Read the HTML template
+    const template = readFileSync(
+      path.join(__dirname, "client/build/index.html"),
+      "utf8"
+    );
+
+    // Insert the initial logs data
+    const html = template.replace(
+      '<div id="root"></div>',
+      `<div id="root"></div>
+       <script>
+         window.__INITIAL_LOGS__ = ${JSON.stringify(initialLogs)};
+       </script>`
+    );
+
+    res.send(html);
+  } catch (error) {
+    console.error("Error serving logs UI:", error);
+    res.status(500).send("Error loading logs viewer");
+  }
+});
+
+const wss = new WebSocket.Server({ noServer: true });
+
+wss.on("connection",async (ws) => {
+  console.log("WebSocket connection established");
+
+  // Send a test message immediately
+  ws.send(JSON.stringify(await processLogs()));
+
+  ws.on("message", async (message) => {
+    console.log("Message received from client:", message);
+
+    try {
+      console.log("Message received:", message);
+      const filters = JSON.parse(message);
+      const logs = await processLogs(filters);
+      ws.send(JSON.stringify(logs));
+    } catch (error) {
+      console.error("WebSocket error:", error);
+    }
+  });
+
+  ws.on("close", (code, reason) => {
+    console.log(`WebSocket closed: Code=${code}, Reason=${reason}`);
+  });
+
+  ws.on("error", (error) => {
+    console.error("WebSocket error:", error);
+  });
+});
+
+const server = app.listen(port, () => {
   console.log(`Server running on port ${port}`);
   logger.info(`Server running on port ${port}`);
+});
+
+server.on("upgrade", (request, socket, head) => {
+  // Confirm the upgrade process is being invoked.
+  console.log("Upgrade request received");
+
+  wss.handleUpgrade(request, socket, head, (ws) => {
+    console.log("Connection upgraded");
+    wss.emit("connection", ws, request);
+  });
 });
