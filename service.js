@@ -106,7 +106,7 @@ async function processLogs(options = {}) {
   };
 }
 app.use(bodyParser.json()); // Middleware to parse JSON bodies
-
+app.use(express.static(path.join(__dirname, 'client/build')));
 // Health check route
 app.get("/health", (req, res) => {
   res.status(200).send("OK");
@@ -284,6 +284,12 @@ app.get("/logs", async (req, res) => {
 });
 
 app.get("/logs-ui", async (req, res) => {
+   // Simple authentication check
+   const auth = req.query.auth;
+   if (!auth || auth!== "dabeer") {
+     return res.status(401).send("Unauthorized"); // This triggers the browser popup
+   }
+ 
   try {
     // Get initial logs
     const initialLogs = await processLogs();
