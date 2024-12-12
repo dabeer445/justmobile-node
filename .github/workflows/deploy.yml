@@ -28,6 +28,6 @@ jobs:
         ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
           cd proxy
           git pull origin main
-          npm install
+          npm install --force
           pm2 restart all
         EOF

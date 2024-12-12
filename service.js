@@ -34,50 +34,67 @@ const logger = winston.createLogger({
   ],
 });
 
-// Function to read and process logs
 async function processLogs(options = {}) {
   const { page = 1, limit = 10, level, search, startDate, endDate } = options;
-
-  const logFilePath = "./logs/api_logs.log";
-  const fileStream = createReadStream(logFilePath);
-  const rl = readline.createInterface({
-    input: fileStream,
-    crlfDelay: Infinity,
-  });
 
   const logs = [];
   let totalLogs = 0;
   let skippedLogs = 0;
   const skip = (page - 1) * limit;
 
-  for await (const line of rl) {
-    try {
-      const log = JSON.parse(line);
+  // Determine start and end dates
+  const currentDate = new Date();
+  const start = startDate
+    ? new Date(startDate)
+    : new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  const end = endDate
+    ? new Date(endDate)
+    : new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
 
-      // Apply filters
-      if (level && log.level !== level) continue;
-      if (
-        search &&
-        !JSON.stringify(log).toLowerCase().includes(search.toLowerCase())
-      )
-        continue;
-      if (startDate && new Date(log.timestamp) < new Date(startDate)) continue;
-      if (endDate && new Date(log.timestamp) > new Date(endDate)) continue;
+  // Generate log files for the date range
+  const currentMonth = new Date(start);
+  while (currentMonth <= end) {
+    const logFilePath = `./logs/api-${currentMonth.getFullYear()}-${String(
+      currentMonth.getMonth() + 1
+    ).padStart(2, "0")}.log`;
+    console.log(logFilePath);
+    const fileStream = createReadStream(logFilePath);
+    const rl = readline.createInterface({
+      input: fileStream,
+      crlfDelay: Infinity,
+    });
 
-      totalLogs++;
+    for await (const line of rl) {
+      try {
+        const log = JSON.parse(line);
+        // Apply filters
+        if (level && log.level !== level) continue;
+        if (
+          search &&
+          !JSON.stringify(log).toLowerCase().includes(search.toLowerCase())
+        )
+          continue;
+        if (startDate && new Date(log.timestamp) < start) continue;
+        if (endDate && new Date(log.timestamp) > end) continue;
 
-      if (skippedLogs < skip) {
-        skippedLogs++;
+        totalLogs++;
+
+        if (skippedLogs < skip) {
+          skippedLogs++;
+          continue;
+        }
+
+        if (logs.length < limit) {
+          logs.push(log);
+        }
+      } catch (error) {
+        console.error("Error parsing log line:", error);
         continue;
       }
-
-      if (logs.length < limit) {
-        logs.push(log);
-      }
-    } catch (error) {
-      console.error("Error parsing log line:", error);
-      continue;
     }
+
+    // Move to the next month
+    currentMonth.setMonth(currentMonth.getMonth() + 1);
   }
 
   return {
@@ -88,7 +105,6 @@ async function processLogs(options = {}) {
     totalPages: Math.ceil(totalLogs / limit),
   };
 }
-
 app.use(bodyParser.json()); // Middleware to parse JSON bodies
 
 // Health check route
@@ -245,58 +261,16 @@ app.get("/logs", async (req, res) => {
     const limit = parseInt(req.query.limit || "10");
     const { level, search, startDate, endDate } = req.query;
 
-    // Adjust this path to your log file location
-    const logFilePath = "./logs/api_logs.log";
-
-    const fileStream = createReadStream(logFilePath);
-    const rl = readline.createInterface({
-      input: fileStream,
-      crlfDelay: Infinity,
-    });
-
-    const logs = [];
-    let totalLogs = 0;
-    let skippedLogs = 0;
-    const skip = (page - 1) * limit;
-
-    for await (const line of rl) {
-      try {
-        const log = JSON.parse(line);
-
-        // Apply filters
-        if (level && log.level !== level) continue;
-        if (
-          search &&
-          !JSON.stringify(log).toLowerCase().includes(search.toLowerCase())
-        )
-          continue;
-        if (startDate && new Date(log.timestamp) < new Date(startDate))
-          continue;
-        if (endDate && new Date(log.timestamp) > new Date(endDate)) continue;
-
-        totalLogs++;
-
-        if (skippedLogs < skip) {
-          skippedLogs++;
-          continue;
-        }
-
-        if (logs.length < limit) {
-          logs.push(log);
-        }
-      } catch (error) {
-        console.error("Error parsing log line:", error);
-        continue;
-      }
-    }
-
-    res.json({
-      data: logs.reverse(),
-      total: totalLogs,
-      page: page,
-      limit: limit,
-      totalPages: Math.ceil(totalLogs / limit),
-    });
+    res.json(
+      await processLogs({
+        level,
+        search,
+        startDate,
+        endDate,
+        page,
+        limit,
+      })
+    );
   } catch (error) {
     console.error("Error processing logs:", error);
     res.status(500).json({
@@ -338,7 +312,7 @@ app.get("/logs-ui", async (req, res) => {
 
 const wss = new WebSocket.Server({ noServer: true });
 
-wss.on("connection",async (ws) => {
+wss.on("connection", async (ws) => {
   console.log("WebSocket connection established");
 
   // Send a test message immediately
